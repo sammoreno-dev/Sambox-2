@@ -10,8 +10,8 @@ menu_input_central() {
         printf "  ║        🎮  DIAGNÓSTICO DE CONTROLES       ║\n"
         printf "  ╚═══════════════════════════════════════════╝${RST}\n\n"
         
-        printf "  ${CYAN}${RST} [1] 🛡️   Inspecionar Permissões de Usuário, Nós e Grupos\n"
-        printf "  ${CYAN}${RST} [2] 🎮  Escanear Controles e Joysticks Conectados (Kernel)\n"
+        printf "  ${CYAN}${RST}  🛡️   Inspecionar Permissões de Usuário, Nós e Grupos\n"
+        printf "  ${CYAN}${RST}  🎮  Escanear Controles e Joysticks Conectados (Kernel)\n"
         printf "  ${DIM}─────────────────────────────────────────────────────────────────${RST}\n"
         printf "  ${CYAN}${RST}  ⬅️   Voltar ao Menu Principal\n\n"
 

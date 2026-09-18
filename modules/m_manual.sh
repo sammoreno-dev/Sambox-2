@@ -1,32 +1,32 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
-# Sambox 2 - Módulo de Manual e Instruções
-# Copyright (c) 2026, Sam Moreno
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# 1. Redistributions of source code must retain the above copyright notice, this
-#    list of conditions and the following disclaimer.
-#
-# 2. Redistributions in binary form must reproduce the above copyright notice,
-#    this list of conditions and the following disclaimer in the documentation
-#    and/or other materials provided with the distribution.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# Sambox 2 - Módulo do Manual de Instruções e Dicas de Uso
+# Copyright (c) 2026, Sam Moreno. Todos os direitos reservados.
+# Distribuído sob os termos estáveis da licença BSD 2-Clause.
 # -----------------------------------------------------------------------------
 
-# ── Função Orquestradora do Manual ──────────────────────────────────────────
-menu_manual() {
-    _show_manual
+menu_manual_central() {
+    clear 2>/dev/null || true
+    printf "\n"
+    printf "${CYAN}${BOLD}  ╔═══════════════════════════════════════════╗\n"
+    printf "  ║     📖  MANUAL DE INSTRUÇÕES & DICAS       ║\n"
+    printf "  ╚═══════════════════════════════════════════╝${RST}\n\n"
+    
+    printf "  ${BOLD}1. Filosofia de Design Minimalista${RST}\n"
+    printf "     O Sambox 2 opera de forma 100%% bare-metal e em Bash puro.\n"
+    printf "     Evitamos interpretadores pesados para extrair performance máxima.\n\n"
+    
+    printf "  ${BOLD}2. Ajustes de Ambiente para Gamers (Wine/Proton)${RST}\n"
+    printf "     Nossos módulos injetam variáveis de sincronização de forma cirúrgica\n"
+    printf "     como ESYNC e FSYNC para baratear chamadas de sistema no kernel.\n\n"
+    
+    printf "  ${BOLD}3. Gerenciamento de Emulação Híbrida${RST}\n"
+    printf "     Casos complexos de dependências de ponta (como RPCS3 e Ryujinx)\n"
+    printf "     são encapsulados e limpos através de contêineres Flatpak nativos.\n"
+    
+    printf "  ${DIM}─────────────────────────────────────────────────────────────────${RST}\n"
+    printf "  ${YELLOW}[i]${RST} Pressione qualquer tecla para sair do manual e voltar à TUI.\n"
 }
+
+# Auto-registro vivo: Adiciona a opção correta à mesa do motor dinâmico
+register_sambox_module "📖  Manual de Instruções do Sambox 2" "menu_manual_central"

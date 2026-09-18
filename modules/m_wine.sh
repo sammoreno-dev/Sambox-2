@@ -414,3 +414,5 @@ menu_wine_central() {
         read -rp "  Pressione [ENTER] para continuar..." _
     done
 }
+# Cole isso na última linha do arquivo:
+register_sambox_module "⚙️   Orquestrador de Jogos Wine / Proton" "menu_wine_central"

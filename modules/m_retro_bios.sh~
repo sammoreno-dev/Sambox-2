@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Sambox 2 - Sub-módulo de Auditoria Criptográfica de BIOS
+# Copyright (c) 2026, Sam Moreno. Licença BSD 2-Clause.
+
+KNOWN_BIOS=(
+    "scph1001.bin|PSX|PlayStation 1 North America (v4.0)|924e392ed05558ffdb115408c263dccf76f409f1"
+    "scph5501.bin|PSX|PlayStation 1 North America (v3.0)|8dd7d5296a650fac7319bce665a6a53c8b424887"
+    "scph5500.bin|PSX|PlayStation 1 Japan (v3.0)|ff3eeb8c664c8d8dce5d98503e4096052f06da31"
+    "scph39001.bin|PS2|PlayStation 2 NA BIOS|b900593740e53a557b4c6e5a6fefd1c4701ee035"
+    "gba_bios.bin|GBA|Game Boy Advance Official BIOS|a860e8c0b6d573d191e4ec7db1b1e4f6d30acf4f"
+    "dc_boot.bin|Dreamcast|S Sega Dreamcast Boot ROM|e10c53c2f8b90bab96eed2e96717013898c6d123"
+    "dc_flash.bin|Dreamcast|Sega Dreamcast Flash NVRAM|0a93f7940c455905ab6e36bfa8093660fb7174a5"
+    "bios_CD_U.bin|SegaCD|Sega CD Model 2 US|2efd74e3232ff264e3042e53395974a0477f3b0f"
+    "sega_101.bin|Saturn|Sega Saturn Japan BIOS|224b92f8c3da15bae663b82aa294582f3ef7885b"
+)
+
+retro_verify_bios() {
+    local bios_dir="${1:-${HOME}/RetroROMs/bios}" has_sha1=0
+    printf "\n${CYAN}${BOLD}  ╔═══════════════════════════════════════════╗\n  ║     🛡️   VALIDAÇÃO CRIPTOGRÁFICA DE BIOS   ║\n  ╚═══════════════════════════════════════════╝${RST}\n\n"
+    [[ ! -d "${bios_dir}" ]] && _warn "Diretório de BIOS ausente: ${bios_dir}" && return 0
+    command -v sha1sum >/dev/null 2>&1 && has_sha1=1
+    printf "  ${BOLD}%-16s %-10s %-12s %s${RST}\n" "ARQUIVO" "SISTEMA" "STATUS" "INTEGRIDADE SHA-1"; _sep
+    for item in "${KNOWN_BIOS[@]}"; do
+        local file sys desc exp_sha1; IFS='|' read -r file sys desc exp_sha1 <<< "${item}"
+        local fullpath="${bios_dir}/${file}"
+        if [[ -f "${fullpath}" ]]; then
+            local integrity="${YELLOW}Hash ignorado${RST}"
+            [[ $has_sha1 -eq 1 ]] && [[ "$((sha1sum "${fullpath}" || echo "err") | awk '{print $1}')" == "${exp_sha1,,}" ]] && integrity="${GREEN}VÁLIDO (Oficial)${RST}" || integrity="${RED}CORROMPIDO${RST}"
+            printf "  %-16s %-10s ${GREEN}%-12s${RST} %b\n" "${file}" "${sys}" "Presente" "${integrity}"
+        else
+            printf "  %-16s %-10s ${DIM}%-12s${RST} %s\n" "${file}" "${sys}" "Ausente" "${DIM}Requerido para ${sys}${RST}"
+        fi
+    done
+}

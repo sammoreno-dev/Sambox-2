@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
+<<<<<<< HEAD
 # -----------------------------------------------------------------------------
 # Sambox 2 - Módulo de Gerenciamento de ROMs, BIOS & Emuladores
 # Copyright (c) 2026, Sam Moreno. All rights reserved.
 # Distribuído sob os termos estáveis da licença BSD 2-Clause.
 # -----------------------------------------------------------------------------
+=======
+# Sambox 2 - Menu Central de Emulação (Leve & Pragmático)
+# Copyright (c) 2026, Sam Moreno. Licença BSD 2-Clause.
+>>>>>>> 06e09fd (Refatora tabelas ANSI e otimiza auditoria criptográfica de BIOS)
 
 DEFAULT_ROM_DIR="${HOME}/RetroROMs"
+STANDARD_SYSTEMS=(nes snes n64 gamecube wii switch gb gbc gba genesis mastersystem saturn dreamcast psx ps2 psp arcade bios)
 
+<<<<<<< HEAD
 STANDARD_SYSTEMS=(nes snes n64 gamecube wii switch gb gbc gba genesis mastersystem saturn dreamcast psx ps2 psp arcade bios)
 
 KNOWN_BIOS=(
@@ -64,12 +71,44 @@ retro_check_dirs() {
         local dir="${target_dir}/${sys}"
         if [[ -d "${dir}" ]]; then
             local count=$(find "${dir}" -maxdepth 1 -type f 2>/dev/null | wc -l)
+=======
+retro_init_dirs() {
+    local target_dir="${1:-${DEFAULT_ROM_DIR}}"
+    printf "\n${YELLOW}[+]${RST} Inicializando estrutura padrão em: ${CYAN}%s${RST}...\n" "${target_dir}"
+    for sys in "${STANDARD_SYSTEMS[@]}"; do
+        local dir="${target_dir}/${sys}"
+        [[ ! -d "${dir}" ]] && mkdir -p "${dir}" && printf "    ${GREEN}✔${RST} Criado: %s\n" "${dir}"
+    done
+    cat <<EOF > "${target_dir}/LEIAME.txt"
+Sambox 2 - Estrutura de Emulação & ROMs
+Coloque os jogos nas pastas correspondentes e as BIOS na pasta 'bios/'.
+EOF
+    _msg "Estrutura de emulação organizada com sucesso!"
+}
+
+retro_check_dirs() {
+    local target_dir="${1:-${DEFAULT_ROM_DIR}}" 
+    local total_roms=0
+    
+    printf "\n${CYAN}${BOLD}  ╔═══════════════════════════════════════════╗\n  ║     📊  AUDITORIA DE ARQUIVOS DE ROMs     ║\n  ╚═══════════════════════════════════════════╝${RST}\n\n"
+    
+    [[ ! -d "${target_dir}" ]] && _warn "Diretório base ausente: ${target_dir}" && return 0
+    
+    for sys in "${STANDARD_SYSTEMS[@]}"; do
+        local dir="${target_dir}/${sys}"
+        if [[ -d "${dir}" ]]; then
+            # Otimizado: conta de forma robusta e limpa espaços extras gerados pelo wc em alguns Unix
+            local count
+            count=$(find "${dir}" -maxdepth 1 -type f -printf '.' 2>/dev/null | wc -c | tr -d ' ')
+            count=${count:-0}
+>>>>>>> 06e09fd (Refatora tabelas ANSI e otimiza auditoria criptográfica de BIOS)
             total_roms=$(( total_roms + count ))
             printf "  ${GREEN}[✓]${RST} %-16s : ${BOLD}%4d${RST} arquivos\n" "${sys}" "${count}"
         else
             printf "  ${YELLOW}[✗]${RST} %-16s : ${DIM}Diretório ausente${RST}\n" "${sys}"
         fi
     done
+<<<<<<< HEAD
     _sep; printf "  ${BOLD}Total de arquivos detectados:${RST} ${GREEN}%d${RST}\n" "${total_roms}"
 }
 
@@ -139,10 +178,42 @@ retro_install_emulators() {
                 *) _warn "Cancelado.";;
             esac
         fi
+=======
+    _sep
+    printf "  ${BOLD}Total de arquivos detectados:${RST} ${GREEN}%d${RST}\n" "${total_roms}"
+}
+
+menu_retro_central() {
+    local r_menu
+    while true; do
+        clear 2>/dev/null
+        printf "\n${CYAN}${BOLD}  ╔═══════════════════════════════════════════╗\n  ║        🕹️   CENTRAL RETRO & EMULAÇÃO      ║\n  ╚═══════════════════════════════════════════╝${RST}\n\n"
+        printf "  ${CYAN}[1]${RST}    📁  Inicializar Árvore Padrão de ROMs (~/RetroROMs)\n"
+        printf "  ${CYAN}[2]${RST}    📊  Auditar Diretórios e Contagem de ROMs\n"
+        printf "  ${CYAN}[3]${RST}    🛡️   Validar Hashes SHA-1 de BIOS (Módulo Isolado)\n"
+        printf "  ${CYAN}[4]${RST}    🎮  Auditar Emuladores e Configurações Instaladas\n"
+        printf "  ${CYAN}[5]${RST}    📦  Instalar Emuladores (APT / Flatpak híbrido)\n"
+        printf "  ${CYAN}[6]${RST}    🗑️   Limpar Configs Órfãs (Varredura de Sandboxes)\n"
+        printf "  ${DIM}────────────────────────────────────────────────${RST}\n"
+        printf "  ${CYAN}[0]${RST}    ⬅️   Voltar ao Menu Principal\n\n"
+        
+        read -rp "  Selecione [0-6]: " r_menu
+        case "$r_menu" in
+            1) retro_init_dirs "${DEFAULT_ROM_DIR}" ;;
+            2) retro_check_dirs "${DEFAULT_ROM_DIR}" ;;
+            3) retro_verify_bios "${DEFAULT_ROM_DIR}/bios" ;; # Função do m_retro_bios.sh
+            4) retro_audit_emulators ;;                       # Função do m_retro_apps.sh
+            5) retro_install_emulators ;;                     # Função do m_retro_apps.sh
+            6) retro_clean_orphan_configs ;;                  # Função do m_retro_apps.sh
+            0) break ;;
+            *) _warn "Opção inválida." ;;
+        esac
+>>>>>>> 06e09fd (Refatora tabelas ANSI e otimiza auditoria criptográfica de BIOS)
         printf "\n"; read -rp "  Pressione [ENTER] para continuar..." _
     done
 }
 
+<<<<<<< HEAD
 # [6] Limpar Configurações Órfãs de Emuladores Removidos (APT e Flatpak de uma vez só)
 retro_clean_orphan_configs() {
     printf "\n${CYAN}${BOLD}  ╔═══════════════════════════════════════════╗\n  ║     🗑️   CONFIGS ÓRFÃS DE EMULADORES     ║\n  ╚═══════════════════════════════════════════╝${RST}\n\n"
@@ -162,3 +233,6 @@ retro_clean_orphan_configs() {
     done
     [[ ${#orphan_dirs[@]} -eq 0 ]] && { _msg "Nenhum lixo órfão detectado."; return 0; }
 printf "\n"; read -rp "  Remover as ${#orphan_dirs[@]} pastas listadas? [s/N]: " confirm[[ "${confirm,,}" != "s" ]] && { _warn "Cancelado."; return 0; }for i in "${!orphan_dirs[@]}"; doprintf "  ${RED}[-]${RST} Expurgando: %s\n" "${orphan_dirs[$i]}"rm -rf "${orphan_dirs[$i]}"done_msg "Limpeza profunda concluída!"}Despacho CLI e Orquestrador Menu Principalrun_retro_cli() {case "${1:-}" ininit) shift; retro_init_dirs "$@" ;; check|audit) shift; retro_check_dirs "$@" ;; bios) shift; retro_verify_bios "$@" ;;emulators|emus) retro_audit_emulators ;; install|install-emus) retro_install_emulators ;; clean-configs|orphan) retro_clean_orphan_configs ;;*) echo "Uso: sambox2 --retro [init|check|bios|emulators|install-emus|clean-configs]" ;;esac}menu_retro_central() {local r_menuwhile true; doclear 2>/dev/null; printf "\n${CYAN}${BOLD}  ╔═══════════════════════════════════════════╗\n  ║        🕹️   CENTRAL RETRO & EMULAÇÃO      ║\n  ╚═══════════════════════════════════════════╝${RST}\n\n"printf "  ${CYAN}[1]${RST}    📁  Inicializar Árvore Padrão de ROMs (~/RetroROMs)\n  ${CYAN}[2]${RST}    📊  Auditar Diretórios e Contagem de ROMs\n  ${CYAN}[3]${RST}    🛡️   Validar Integridade e Hashes SHA-1 de BIOS\n"printf "  ${CYAN}[4]${RST}    🎮  Auditar Emuladores e Configurações Instaladas\n  ${CYAN}[5]${RST}    📦  Instalar Emuladores (APT / Flatpak)\n  ${CYAN}[6]${RST}    🗑️   Limpar Configs Órfãs de Emuladores Removidos\n"printf "  ${DIM}────────────────────────────────────────────────${RST}\n  ${CYAN}[0]${RST}    ⬅️   Voltar ao Menu Principal\n\n"read -rp "  Selecione [0-6]: " r_menucase "$r_menu" in1) retro_init_dirs "${DEFAULT_ROM_DIR}" ;; 2) retro_check_dirs "${DEFAULT_ROM_DIR}" ;; 3) retro_verify_bios "${DEFAULT_ROM_DIR}/bios" ;;4) retro_audit_emulators ;; 5) retro_install_emulators ;; 6) retro_clean_orphan_configs ;; 0) break ;; *) _warn "Opção inválida." ;;esacprintf "\n"; read -rp "  Pressione [ENTER] para continuar..." _done}
+=======
+register_sambox_module "🕹️   Central Retro & Emulação" "menu_retro_central"
+>>>>>>> 06e09fd (Refatora tabelas ANSI e otimiza auditoria criptográfica de BIOS)

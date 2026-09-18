@@ -70,7 +70,7 @@ sambox2
 ## 📂 Estrutura do Projeto:
 
 ```
-Sambox 2/
+Sambox-2/
 ├── sambox2                 # Entry-point principal (Orquestrador modular)
 ├── modules/
 │   ├── m_wine.sh           # Central de jogos Wine/Proton e sintonia de ENV

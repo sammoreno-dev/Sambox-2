@@ -28,7 +28,7 @@ _get_path_size_bytes() {
 cleanup_scan() {
     local purge_trigger="${1:-0}"
     local total_bytes=0 found_count=0 dxvk_bytes=0
-    local type="" label="" path="" line="" readable="" bytes=0
+    local type="" label="" path="" readable="" bytes=0
     local dxvk_files=() f="" b=0
 
     printf "\n${CYAN}${BOLD}  ╔═══════════════════════════════════════════╗\n"
@@ -48,13 +48,19 @@ cleanup_scan() {
             found_count=$(( found_count + 1 ))
             readable=$(_net_format_bytes "${bytes}")
 
-            printf "  %-38s ${YELLOW}%-12s${RST} ${GREEN}Presente${RST}\n" "${label}" "${readable}"
-            
-            # Se o gatilho for 1, remove fisicamente o diretório de cache
+            # Se o gatilho for 1, remove apenas o CONTEÚDO interno preservando o diretório-pai
             if [[ "${purge_trigger}" == "1" ]]; then
-                rm -rf "${path}" 2>/dev/null || true
+                if [[ -d "${path}" ]]; then
+                    find "${path}" -mindepth 1 -delete 2>/dev/null || true
+                else
+                    rm -f "${path}" 2>/dev/null || true
+                fi
+                printf "  %-38s ${YELLOW}%-12s${RST} ${GREEN}[PURGADO]${RST}\n" "${label}" "${readable}"
+            else
+                printf "  %-38s ${YELLOW}%-12s${RST} ${GREEN}Presente${RST}\n" "${label}" "${readable}"
             fi
         else
+            # Corrigido: Mantém o alinhamento perfeito de 3 colunas mesmo se ausente
             printf "  %-38s ${DIM}%-12s Ausente${RST}\n" "${label}" "0 B"
         fi
     # Alimenta o laço consumindo a função sob demanda contida no m_cleanup_data.sh
@@ -89,3 +95,4 @@ cleanup_scan() {
         [[ ${#dxvk_files[@]} -gt 0 ]] && printf "    ${CYAN}🎮 Pipelines DXVK localizados:${RST} ${BOLD}%d arquivos .dxvk-cache${RST} órfãos.\n" "${#dxvk_files[@]}"
     fi
 }
+

@@ -25,8 +25,9 @@ export SAMBOX_VERSION="2.0.0"
 export SAMBOX_DIR="$(_resolve_sambox_dir)"
 export MODULES_DIR="${SAMBOX_DIR}/modules"
 
-# ── Paleta de Cores e Estilos ANSI (Identidade Visual Gamer Ciano) ───────────
-export RST='\033[0m' BOLD='\033[1m' DIM='\033[2m'
+# ── Paleta de Cores e Estilos ANSI (Cinza do DIM altamente compatível) ──────
+export RST='\033[0m' BOLD='\033[1m' 
+export DIM='\033[38;5;244m' # Um cinza estável que substitui o problemático \033[2m
 export RED='\033[0;31m' GREEN='\033[0;32m' YELLOW='\033[0;33m' CYAN='\033[0;36m'
 
 # 2. Infraestrutura de Auto-Registro Dinâmico (Filosofia Sambox 2)
@@ -34,8 +35,17 @@ declare -g -a SAMBOX_MODULE_NAMES=()
 declare -g -a SAMBOX_MODULE_FUNCS=()
 
 register_sambox_module() {
-    SAMBOX_MODULE_NAMES+=("$1")
-    SAMBOX_MODULE_FUNCS+=("$2")
+    local mod_name="$1"
+    local mod_func="$2"
+    local func=""
+
+    # Prevenção Ativa de Duplicidade na TUI
+    for func in "${SAMBOX_MODULE_FUNCS[@]}"; do
+        [[ "${func}" == "${mod_func}" ]] && return 0
+    done
+
+    SAMBOX_MODULE_NAMES+=("${mod_name}")
+    SAMBOX_MODULE_FUNCS+=("${mod_func}")
 }
 
 # 3. Função de Hot-Reload (Carregamento Inteligente e Limpeza de Estado)
@@ -43,9 +53,12 @@ reload_sambox_modules() {
     SAMBOX_MODULE_NAMES=()
     SAMBOX_MODULE_FUNCS=()
     if [[ -d "${MODULES_DIR}" ]]; then
+        local module="" mod_name=""
         for module in "${MODULES_DIR}"/m_*.sh; do
-            local mod_name="${module##*/}"
-            # Ignora o menu principal e a si mesmo no loop automático
+            # Se a pasta estiver vazia e o wildcard falhar, previne quebra de loop
+            [[ -e "${module}" ]] || continue
+            mod_name="${module##*/}"
+            # Ignora o menu principal e o manual de duplicidades estáticas no loop automático
             [[ -f "${module}" && "${mod_name}" != "m_mainmenu.sh" && "${mod_name}" != "m_reload.sh" ]] && source "${module}"
         done
     fi
@@ -74,19 +87,21 @@ _pager_view() {
     else printf "%s" "${content}"; fi
 }
 
-# Garante o carregamento dos controladores visuais por último
+# Garante o carregamento dos controladores visuais por último (m_mainmenu gerencia as TUIs)
 [[ -f "${MODULES_DIR}/m_manual.sh" ]] && source "${MODULES_DIR}/m_manual.sh"
 [[ -f "${MODULES_DIR}/m_mainmenu.sh" ]] && source "${MODULES_DIR}/m_mainmenu.sh"
 
 # ── 5. Catálogo Único de Parâmetros e Motor de Despacho Otimizado ────────────
 _dispatch_cli_or_tui() {
-    local flag="$1"
+    # Blindado contra o set -u: Avalia a presença de argumentos sem disparar crash
+    local flag="${1:-}"
+    [[ -z "${flag}" ]] && return 1
     shift || true
 
     # Catálogo Mestre: Flag | Função TUI | Função CLI | Nome do Módulo
     local cli_catalog=(
         "--manual|show_manual_menu|show_manual_menu|Manual de Instruções"
-        "--clean|purge_gaming_bloat|purge_gaming_bloat|Limpeza & Faxina"
+        "--clean|menu_cleanup_central|menu_cleanup_central|Limpeza & Faxina"
         "--wine|menu_wine_central|run_wine_cli|Orquestrador Wine"
         "--retro|menu_retro_central|run_retro_cli|Central Retro"
         "--input|menu_input_central|run_input_cli|Diagnóstico de Inputs"
@@ -96,7 +111,6 @@ _dispatch_cli_or_tui() {
     for entry in "${cli_catalog[@]}"; do
         IFS='|' read -r f_flag tui_func cli_func mod_label <<< "${entry}"
         if [[ "${f_flag}" == "${flag}" ]]; then
-            # Se o usuário não passou argumentos extras, tenta abrir a TUI do módulo, senão roda a CLI
             local target_func="${tui_func}"
             [[ $# -gt 0 ]] && target_func="${cli_func}"
 
@@ -132,6 +146,7 @@ _show_help() {
 
 # ── 6. Ponto de Entrada Central (Main lifecycle) ───────────────────────────
 _main() {
+    # Tratamento seguro para set -u: checa o tamanho de argumentos antes de ler $1
     if [[ $# -gt 0 ]]; then
         case "$1" in
             -v|--version) echo "Sambox 2 Engine v${SAMBOX_VERSION} — por Sam Moreno. Liberdade digital. ツ"; exit 0 ;;

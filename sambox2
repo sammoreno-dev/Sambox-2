@@ -1,0 +1,389 @@
+#!/usr/bin/env bash
+# ============================================================================
+# BSD 2-Clause License (Simplified)
+#
+# Copyright (c) 2026, Sam Moreno
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+#    this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+# ============================================================================
+#
+# sambox2 — Gaming, Emulation & Low-Level Tuning Toolbox
+# Entry-point principal e orquestrador de módulos.
+#
+
+set -euo pipefail
+
+# ── Ajuste de PATH para Utilitários de Sistema (/sbin, /usr/sbin) ───────────
+export PATH="${PATH}:/sbin:/usr/sbin:/usr/local/sbin"
+
+# ── Resolução de Diretório Real (Suporte Total a Symlinks no $PATH) ─────────
+_resolve_sambox_dir() {
+    local source="${BASH_SOURCE[0]}"
+    local dir=""
+    while [[ -L "${source}" ]]; do
+        dir="$(cd -P "$(dirname "${source}")" >/dev/null 2>&1 && pwd)"
+        source="$(readlink "${source}")"
+        [[ ${source} != /* ]] && source="${dir}/${source}"
+    done
+    cd -P "$(dirname "${source}")" >/dev/null 2>&1 && pwd
+}
+
+# ── Constantes Globais ──────────────────────────────────────────────────────
+readonly SAMBOX_VERSION="2.0.0"
+readonly SAMBOX_DIR="$(_resolve_sambox_dir)"
+readonly MODULES_DIR="${SAMBOX_DIR}/modules"
+
+# ── Paleta de Cores e Estilos ANSI ──────────────────────────────────────────
+readonly RST=$'\033[0m'
+readonly BOLD=$'\033[1m'
+readonly RED=$'\033[0;31m'
+readonly GREEN=$'\033[0;32m'
+readonly YELLOW=$'\033[0;33m'
+readonly CYAN=$'\033[0;36m'
+readonly BLUE=$'\033[0;34m'
+readonly MAGENTA=$'\033[0;35m'
+readonly DIM=$'\033[2m'
+
+# Exporta constantes visuais para uso compartilhado nos módulos
+export RST BOLD RED GREEN YELLOW CYAN BLUE MAGENTA DIM
+export SAMBOX_VERSION SAMBOX_DIR MODULES_DIR
+
+# ── Restauração Segura do Terminal em Cancelamentos (Ctrl+C) ───────────────
+_cleanup() {
+    tput cnorm 2>/dev/null || true
+    printf "\n${YELLOW}[!]${RST} Execução interrompida pelo usuário. Saindo do Sambox 2...\n"
+    exit 130
+}
+trap _cleanup SIGINT SIGTERM
+
+# ── Helpers Visuais da Interface (UI) ──────────────────────────────────────
+_banner() {
+    printf '\n'
+    printf "${CYAN}${BOLD}"
+    printf '  ╔═══════════════════════════════════════════╗\n'
+    printf '  ║           🎮  S A M B O X  2  v%-10s║\n' "${SAMBOX_VERSION}"
+    printf '  ║   Gaming, Emulation & Low-Level Tuning    ║\n'
+    printf '  ╚═══════════════════════════════════════════╝\n'
+    printf "${RST}\n"
+}
+
+_msg()  { printf "${GREEN}[✔]${RST} %s\n" "$1"; }
+_warn() { printf "${YELLOW}[!]${RST} %s\n" "$1"; }
+_err()  { printf "${RED}[✖]${RST} %s\n" "$1" >&2; }
+_sep()  { printf "${DIM}────────────────────────────────────────────────${RST}\n"; }
+
+export -f _msg _warn _err _sep
+
+# ── Exibição em Pager Resistente a Falhas ──────────────────────────────────
+_pager_view() {
+    local content="$1"
+    if command -v less &>/dev/null; then
+        printf "%s" "${content}" | less -R
+    elif command -v more &>/dev/null; then
+        printf "%s" "${content}" | more
+    else
+        printf "%s" "${content}"
+    fi
+}
+
+# ── Leitor Interativo do Manual ────────────────────────────────────────────
+_show_manual() {
+    local m_choice
+    while true; do
+        clear 2>/dev/null || true
+        printf "${CYAN}${BOLD}"
+        printf '  ╔═══════════════════════════════════════════╗\n'
+        printf '  ║    📖  SAMBOX 2 MANUAL & DOCUMENTAÇÃO     ║\n'
+        printf '  ╚═══════════════════════════════════════════╝\n'
+        printf "${RST}\n"
+        printf "  ${BOLD}SELECIONE O CAPÍTULO PARA LEITURA:${RST}\n\n"
+        printf "  ${CYAN}[1]${RST}  📜  Capítulo 1 — Filosofia, Licença BSD & Zero Bloatware\n"
+        printf "  ${CYAN}[2]${RST}  ⚙️   Capítulo 2 — Guia dos Módulos Integrados (Wine, Retro, Input, Cleanup)\n"
+        printf "  ${CYAN}[3]${RST}  ⚡  Capítulo 3 — Sintonia de Baixo Nível (ESYNC, FSYNC, DXVK & Shaders)\n"
+        printf "  ${CYAN}[4]${RST}  📚  Manual Completo (Modo Pager)\n"
+        printf "  ${DIM}────────────────────────────────────────────────${RST}\n"
+        printf "  ${CYAN}[0]${RST}  ⬅️   Voltar ao Menu Principal\n\n"
+
+        read -rp "  $(printf "${BOLD}")Escolha [0-4]:$(printf "${RST}") " m_choice
+
+        case "${m_choice}" in
+            1)
+                _pager_view "$(cat << EOF
+${BOLD}${CYAN}=== CAPÍTULO 1: FILOSOFIA & ARQUITETURA BARE-METAL ===${RST}
+
+${BOLD}1. Origem do Nome (Sambox 2):${RST}
+- ${BOLD}Sam:${RST} Assinatura de propriedade técnica e autoria de ${CYAN}Sam Moreno${RST}.
+- ${BOLD}Box:${RST} Caixa de ferramentas minimalista e cirúrgica (Toolbox), livre de
+  bloatware, telemetria invasiva e atritos que poluem utilitários comuns.
+- ${BOLD}2:${RST} A evolução natural voltada especificamente para alto rendimento em
+  jogos, emulação sem firulas e sintonia fina de drivers e kernel.
+
+${BOLD}2. Licenciamento BSD 2-Clause (Simplified):${RST}
+- 100% permissiva, comercialmente livre e sem travas ideológicas ou virais.
+- Desenvolvida para rodar com eficiência cirúrgica sem consumir RAM.
+
+${BOLD}3. Zero Dependências de Interface:${RST}
+- 100% Bash puro + utilitários fundamentais POSIX (grep, awk, sed, cat, lspci).
+- Zero dependência de Zenity, YAD, Whiptail ou frameworks pesados em Electron.
+
+(Pressione 'q' para fechar)
+EOF
+)"
+                ;;
+            2)
+                _pager_view "$(cat << EOF
+${BOLD}${CYAN}=== CAPÍTULO 2: GUIA DOS MÓDULOS INTEGRADOS ===${RST}
+
+${GREEN}[1] Wine/Proton (m_wine.sh):${RST}
+    Orquestrador para jogos Windows. Detecção automática de Wine do sistema,
+    Valve Proton e Lutris runners. Injeção dinâmica de FSYNC (futex2 nativo),
+    ESYNC, DXVK_ASYNC e integração automática com GameMode/MangoHud.
+
+${GREEN}[2] Retro & Emulação (m_retro.sh):${RST}
+    Estruturação automatizada de pastas para 17 consoles em ~/RetroROMs,
+    auditoria de emuladores instalados e verificação criptográfica SHA-1
+    da integridade de arquivos oficiais de BIOS.
+
+${GREEN}[3] Hardware & Gamepads (m_input.sh):${RST}
+    Diagnóstico de controles USB e Bluetooth via /proc/bus/input/devices,
+    auditoria de permissões de /dev/input e uinput, e monitor em tempo real
+    com leitor bare-metal nativo.
+
+${GREEN}[4] Cleanup & Debloat (m_cleanup.sh):${RST}
+    Varredura e eliminação segura de caches inflados de GPU (Mesa, NVIDIA, DXVK),
+    diretórios temporários do Wine e pre-caches da Steam, com modo Dry-Run.
+
+(Pressione 'q' para fechar)
+EOF
+)"
+                ;;
+            3)
+                _pager_view "$(cat << EOF
+${BOLD}${CYAN}=== CAPÍTULO 3: SINTONIA DE BAIXO NÍVEL GAMER ===${RST}
+
+${BOLD}1. FSYNC (Futex2):${RST}
+Nativamente presente no Linux >= 5.16 (ou kernels com patch ntsync/winesync).
+Substitui a fila de threads do servidor Wine por chamadas diretas ao kernel,
+eliminando gargalos massivos de CPU em jogos modernos.
+
+${BOLD}2. ESYNC (Eventfd Synchronization):${RST}
+Fallback de alta performance para kernels anteriores ao 5.16. Utiliza descritores
+de eventos do Linux para sincronização. Requer ulimit -n elevado (mínimo 524288).
+
+${BOLD}3. DXVK_ASYNC=1:${RST}
+Permite a compilação assíncrona de pipelines de shaders no DXVK, eliminando
+engasgos (micro-stutters) na primeira vez que efeitos visuais são renderizados.
+
+${BOLD}4. Cache de Shaders (Purga Periódica):${RST}
+Com o tempo e atualizações de drivers de vídeo, caches de shaders antigos
+podem causar travamentos ou corrupção gráfica. A Central de Limpeza do Sambox 2
+remove apenas arquivos obsoletos com segurança.
+
+(Pressione 'q' para fechar)
+EOF
+)"
+                ;;
+            4)
+                _pager_view "$(cat << EOF
+${BOLD}${YELLOW}======================================================================
+               🎮 SAMBOX 2 v${SAMBOX_VERSION} — MANUAL DE INSTRUÇÕES
+======================================================================${RST}
+
+${BOLD}AUTORIA:${RST}   Sam Moreno
+${BOLD}REQUISITOS:${RST} Bash 4.0+ em distribuições Linux (Debian, Ubuntu, Arch, etc.).
+${BOLD}LICENÇA:${RST}    BSD 2-Clause (Simplified)
+
+${CYAN}EXECUÇÃO RÁPIDA (MODO CLI):${RST}
+  sambox2             Abre a TUI interativa do sistema
+  sambox2 --manual    Abre o leitor de manual e documentação
+  sambox2 --clean     Executa diretamente a varredura/purga de caches de shaders
+  sambox2 --wine      Executa o diagnóstico ou launcher do Wine via CLI
+  sambox2 --retro     Executa a verificação e organização de emulação via CLI
+  sambox2 --input     Inspeciona e lista controles conectados
+  sambox2 --version   Exibe a versão instalada
+  sambox2 --help      Exibe as opções da linha de comando
+
+(Pressione 'q' para fechar)
+EOF
+)"
+                ;;
+            0) break ;;
+            *) _warn "Opção inválida." && sleep 1 ;;
+        esac
+    done
+}
+
+# ── Carregamento Dinâmico e Seguro de Módulos ──────────────────────────────
+_load_modules() {
+    if [[ ! -d "${MODULES_DIR}" ]]; then
+        _err "Diretório de módulos não encontrado!"
+        _err "Caminho procurado: ${MODULES_DIR}"
+        exit 1
+    fi
+
+    local mod_count=0
+    local mod
+    for mod in "${MODULES_DIR}"/*.sh; do
+        [[ -f "${mod}" ]] || continue
+        # shellcheck source=/dev/null
+        if source "${mod}"; then
+            mod_count=$(( mod_count + 1 ))
+        else
+            _err "Falha crítica ao carregar o módulo: ${mod}"
+            exit 1
+        fi
+    done
+
+    if [[ "${mod_count}" -eq 0 ]]; then
+        _warn "Nenhum módulo .sh foi encontrado em ${MODULES_DIR}."
+    fi
+}
+
+# ── Fallback Seguro para Chamadas de Módulos Opcionais ──────────────────────
+_dispatch() {
+    local func_name="$1"
+    local fallback_msg="$2"
+    shift 2 || true
+
+    if declare -f "${func_name}" >/dev/null; then
+        "${func_name}" "$@"
+    else
+        _err "Módulo não carregado ou função ausente: [${func_name}]"
+        _warn "${fallback_msg}"
+    fi
+}
+
+# ── Help / Uso do Utilitário CLI ───────────────────────────────────────────
+_show_help() {
+    echo "Sambox 2 Engine v${SAMBOX_VERSION} — Toolbox Gamer & Emulação Minimalista"
+    echo "Uso: $0 [opção] [argumentos]"
+    echo ""
+    echo "Opções disponíveis:"
+    echo "  --manual        Abre o leitor interativo de instruções e tuning"
+    echo "  --clean         Executa a limpeza de caches de shaders e temporários"
+    echo "  --wine          Invoca comandos da Central Wine (ex: --wine diag, --wine launch <exe>)"
+    echo "  --retro         Invoca comandos da Central Retro (ex: --retro emulators, --retro init)"
+    echo "  --input         Invoca comandos de diagnóstico de controles (ex: --input list, --input perms)"
+    echo "  --version, -v   Exibe a versão do Sambox 2"
+    echo "  --help, -h      Exibe este menu de ajuda"
+}
+
+# ── Menu Principal TUI ─────────────────────────────────────────────────────
+_main_menu() {
+    local choice
+    while true; do
+        _banner
+        printf "  ${BOLD}MÓDULOS DISPONÍVEIS${RST}\n\n"
+        printf "  ${CYAN}[1]${RST}  🍷  Wine/Proton — Gaming Orchestrator & Low-Level Tuning\n"
+        printf "  ${CYAN}[2]${RST}  🕹️   Retro     — ROMs Organizer, BIOS Check & Emulators\n"
+        printf "  ${CYAN}[3]${RST}  🎮  Input     — Gamepad Diagnostics & Real-time Event Monitor\n"
+        printf "  ${CYAN}[4]${RST}  🧹  Cleanup   — Purge Shaders, DXVK State & Wine Bloat\n"
+        printf "  ${CYAN}[5]${RST}  📖  Manual    — Leitor Interativo de Instruções & Tuning\n"
+        printf "  ${DIM}────────────────────────────────────────────────${RST}\n"
+        printf "  ${CYAN}[0]${RST}  ❌  Sair\n\n"
+
+        read -rp "  $(printf "${BOLD}")Selecione [0-5]:$(printf "${RST}") " choice
+
+        case "${choice}" in
+            1) _dispatch "menu_wine_central"    "Módulo Wine (m_wine.sh) indisponível." ;;
+            2) _dispatch "menu_retro_central"   "Módulo Retro (m_retro.sh) indisponível." ;;
+            3) _dispatch "menu_input_central"   "Módulo Input (m_input.sh) indisponível." ;;
+            4) _dispatch "menu_cleanup_central" "Módulo Cleanup (m_cleanup.sh) indisponível." ;;
+            5) _show_manual ;;
+            0) printf "\n"; _msg "Saindo do Sambox 2. Bom jogo!"; exit 0 ;;
+            *) _warn "Opção inválida. Tente novamente." ;;
+        esac
+
+        printf "\n"
+        read -rp "  Pressione [ENTER] para voltar ao menu..." _
+        clear 2>/dev/null || true
+    done
+}
+
+# ── Ponto de Entrada do Motor (Main Execution) ─────────────────────────────
+_main() {
+    _load_modules
+
+    # Tratamento de Argumentos CLI
+    if [[ $# -gt 0 ]]; then
+        case "$1" in
+            --manual|manual)
+                _show_manual
+                exit 0
+                ;;
+            --clean|clean|cleanup)
+                shift
+                _dispatch "purge_gaming_bloat" "Não foi possível executar a limpeza." "$@"
+                exit 0
+                ;;
+            --wine|wine)
+                shift
+                if [[ $# -eq 0 ]]; then
+                    _dispatch "menu_wine_central" "Módulo Wine indisponível."
+                else
+                    _dispatch "run_wine_cli" "Comando Wine indisponível." "$@"
+                fi
+                exit 0
+                ;;
+            --retro|retro)
+                shift
+                if [[ $# -eq 0 ]]; then
+                    _dispatch "menu_retro_central" "Módulo Retro indisponível."
+                else
+                    _dispatch "run_retro_cli" "Comando Retro indisponível." "$@"
+                fi
+                exit 0
+                ;;
+            --input|input)
+                shift
+                if [[ $# -eq 0 ]]; then
+                    _dispatch "menu_input_central" "Módulo Input indisponível."
+                else
+                    _dispatch "run_input_cli" "Comando Input indisponível." "$@"
+                fi
+                exit 0
+                ;;
+            --version|-v)
+                echo "Sambox 2 Engine v${SAMBOX_VERSION} — por Sam Moreno"
+                exit 0
+                ;;
+            --help|-h)
+                _show_help
+                exit 0
+                ;;
+            *)
+                _err "Argumento desconhecido: $1"
+                _show_help
+                exit 1
+                ;;
+        esac
+    fi
+
+    # Inicia a TUI interativa caso nenhum argumento CLI tenha sido informado
+    clear 2>/dev/null || true
+    _main_menu
+}
+
+# Dispara a execução repassando os parâmetros de terminal
+_main "$@"

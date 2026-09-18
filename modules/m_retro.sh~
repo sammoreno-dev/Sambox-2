@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
+<<<<<<< HEAD
 # -----------------------------------------------------------------------------
 # Sambox 2 - Módulo de Gerenciamento de ROMs, BIOS & Emuladores
 # Copyright (c) 2026, Sam Moreno. All rights reserved.
 # Distribuído sob os termos estáveis da licença BSD 2-Clause.
 # -----------------------------------------------------------------------------
+=======
+# Sambox 2 - Menu Central de Emulação (Leve & Pragmático)
+# Copyright (c) 2026, Sam Moreno. Licença BSD 2-Clause.
+>>>>>>> 06e09fd (Refatora tabelas ANSI e otimiza auditoria criptográfica de BIOS)
+
 DEFAULT_ROM_DIR="${HOME}/RetroROMs"
 STANDARD_SYSTEMS=(nes snes n64 gamecube wii switch gb gbc gba genesis mastersystem saturn dreamcast psx ps2 psp arcade bios)
 

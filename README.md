@@ -33,7 +33,7 @@ O nome **Sambox** reflete a união entre autoria, utilidade prática e arquitetu
 Clone o repositório e configure as permissões de execução do motor principal:
 
 ```bash
-git clone https://github.com/sammoreno-dev/sambox2.git && cd sambox2 && chmod +x sambox2 modules/*.sh
+git clone https://github.com/sammoreno-dev/Sambox-2.git && cd Sambox-2 && chmod +x Sambox-2 modules/*.sh
 ```
 
 Execute a ferramenta diretamente:

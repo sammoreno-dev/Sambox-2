@@ -10,9 +10,9 @@ input_check_permissions() {
     printf "  ║     🛡️   PERMISSÕES DE ACESSO A INPUT      ║\n"
     printf "  ╚═══════════════════════════════════════════╝${RST}\n\n"
 
-    # CORREÇÃO DE PERFORMANCE: Consome as variáveis de memória nativas do Bash (Sem forks de whoami ou id)
+    # Consome as variáveis de memória nativas do Bash de forma extremamente veloz
     local current_user="${USER:-$(whoami)}"
-    local groups_str="" node=""
+    local groups_str="" node="" readable_nodes=0 total_nodes=0
     groups_str="$(id -Gn "${current_user}" 2>/dev/null || echo "")"
 
     printf "  ${BOLD}Jogador Atual:${RST}   %s\n" "${current_user}"
@@ -27,8 +27,6 @@ input_check_permissions() {
     fi
 
     if [[ -d /dev/input ]]; then
-        local readable_nodes=0 total_nodes=0
-        
         # Varredura defensiva rápida baseada em expansão de caminhos
         for node in /dev/input/event* /dev/input/js*; do
             [[ -e "${node}" ]] || continue
@@ -63,40 +61,50 @@ input_list_devices() {
 
     printf "    ${DIM}Escaneando o barramento do kernel e aplicando filtros moleculares... 🔬${RST}\n\n"
     
+    # Proteção de escopo local: impede quebra de memória global ou corrupção no Hot-Reload
     local line="" name="" handlers="" is_gamepad=0 count=0
-    # Laço ultra-rápido: lê o arquivo de dispositivos sem pipes pesados de sed ou awk
-    while IFS= read -r line; do
-        # Captura o nome comercial do controle e limpa com o BASH_REMATCH seguro
+
+    # Função auxiliar interna para renderizar o dispositivo e evitar repetição de código
+    _print_device_if_valid() {
+        if [[ ${is_gamepad} -eq 1 && -n "${name}" ]]; then
+            count=$(( count + 1 ))
+            printf "  ${CYAN}[Controle #%d]${RST} ${BOLD}%s${RST}\n" "${count}" "${name}"
+            printf "                 ${DIM}Barramentos lógicos atribuídos: [ %s ]${RST}\n\n" "${handlers}"
+        fi
+    }
+
+    # Laço blindado: O '|| [[ -n "${line}" ]]' garante a leitura do último bloco caso o arquivo não tenha linha vazia no fim
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+        # Captura o nome comercial de forma robusta e inicializa string segura
         if [[ "${line}" =~ ^N:[[:space:]]*Name=\"(.*)\" ]]; then
-            name="${BASH_REMATCH[1]}"
+            name="${BASH_REMATCH[1]:-}"
         fi
         
         # Captura os nós lógicos assinalados (eventos/js)
         if [[ "${line}" =~ ^H:[[:space:]]*Handlers=(.*) ]]; then
-            handlers="${BASH_REMATCH[1]}"
+            handlers="${BASH_REMATCH[1]:-}"
             
-            # FILTRO SELETIVO: Valida se possui o subsistema 'js' ou nomes associados a gamepads
+            # FILTRO SELETIVO: Valida subsistema 'js' ou padrões conhecidos de controles
             if [[ "${handlers}" =~ js[0-9] ]] || [[ "${name,,}" =~ (pad|joystick|controller|gamepad|wheel|xbox|dualshock|dualsense|nintendo) ]]; then
                 is_gamepad=1
             fi
             
-            # FILTRO DE EXPURGO: Remove ruídos de mouses, teclados, botões e áudio HDMI
+            # FILTRO DE EXPURGO: Remove falsos positivos comuns do barramento de hardware
             if [[ "${name,,}" =~ (button|speaker|hdmi|mic|line|headphone|mouse|keyboard) ]]; then
                 is_gamepad=0
             fi
         fi
         
-        # Bloco vazio: fim da ficha do dispositivo no /proc
+        # Fim da ficha do dispositivo (linha em branco do /proc)
         if [[ -z "${line}" ]]; then
-            if [[ ${is_gamepad} -eq 1 && -n "${name}" ]]; then
-                count=$(( count + 1 ))
-                printf "  ${CYAN}[Controle #%d]${RST} ${BOLD}%s${RST}\n" "${count}" "${name}"
-                printf "                 ${DIM}Barramentos lógicos atribuídos: [ %s ]${RST}\n\n" "${handlers}"
-            fi
-            # Reseta os gatilhos estritamente para a próxima leitura do loop (Satisfaz o set -u)
-            is_gamepad=0 name="" handlers=""
+            _print_device_if_valid
+            # Reseta os gatilhos garantindo compatibilidade estrita com o set -u do Sambox 2
+            is_gamepad=0; name=""; handlers=""
         fi
     done < "${dev_file}"
+
+    # Dispara uma checagem extra final para o último dispositivo (proteção contra arquivos truncados)
+    _print_device_if_valid
 
     _sep
     if [[ ${count} -gt 0 ]]; then
@@ -106,3 +114,31 @@ input_list_devices() {
         printf "        Dica: Ligue o Bluetooth ou espete o cabo USB do seu joystick e dê um Hot-Reload! 🎮\n"
     fi
 }
+
+menu_input_central() {
+    local i_menu=""
+    while true; do
+        clear 2>/dev/null || true
+        printf "\n${CYAN}${BOLD}  ╔═══════════════════════════════════════════╗\n"
+        printf "  ║       🎮  CENTRAL DE INPUTS & GAMEPADS    ║\n"
+        printf "  ╚═══════════════════════════════════════════╝${RST}\n\n"
+        printf "  ${CYAN}[1]${RST}  🛡️   Auditar Permissões e Nós (/dev/input)\n"
+        printf "  ${CYAN}[2]${RST}  🎮  Listar Controles Ativos no Kernel\n"
+        printf "  ${DIM}─────────────────────────────────────────────────────────────────${RST}\n"
+        printf "  ${CYAN}[0]${RST}  ⬅️   Voltar ao Menu Principal\n\n"
+
+        read -rp "  Selecione a ação [0-2]: " i_menu
+        [[ "${i_menu}" == "0" || -z "${i_menu}" ]] && break
+
+        case "${i_menu}" in
+            1) input_check_permissions ;;
+            2) input_list_devices ;;
+            *) _warn "Opção inválida para a central de inputs." ;;
+        esac
+        printf "\n"; read -rp "  Pressione [ENTER] para continuar..." _
+    done
+}
+
+# Auto-registro independente no barramento de módulos do Sambox 2
+register_sambox_module "🎮  Input & Gamepads (Diagnóstico de Controles e Permissões)" "menu_input_central"
+

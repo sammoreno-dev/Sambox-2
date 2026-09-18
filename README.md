@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/License-BSD%202--Clause-blue) ![Language](https://img.shields.io/badge/Language-Shell-green)
 
-**Toolbox para gamers, administradores e entusiastas do minimalismo, feita 100% em Bash puro.**
+**Toolbox para gamers e entusiastas do minimalismo, feita 100% em Bash puro.**
 
 Uma central modular, leve e de alta eficiência para orquestração de jogos (Wine/Proton), emulação retrô, calibração de controles e debloat cirúrgico de caches em sistemas Linux — desenvolvida sem amarras ideológicas e focada em performance bruta.
 
